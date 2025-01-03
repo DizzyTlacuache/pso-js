@@ -46,23 +46,39 @@
                 this.velocityY = Math.random() * 2 - 1;
                 this.pBestX = x;
                 this.pBestY = y;
-                this.maxVelocity = 5.0;
+                this.maxVelocity = 1.0;
             }
 
-            update(globalBestX, globalBestY, inertia, c1, c2) {
-                const inertiaTermX = inertia * this.velocityX;
-                const personalTermX = c1 * Math.random() * (this.pBestX - this.x);
-                const socialTermX = c2 * Math.random() * (globalBestX - this.x);
+            updateVelocity(inertia, c1, c2, gBestX, gBestY) {
+                const r1 = Math.random();
+                const r2 = Math.random();
 
-                const inertiaTermY = inertia * this.velocityY;
-                const personalTermY = c1 * Math.random() * (this.pBestY - this.y);
-                const socialTermY = c2 * Math.random() * (globalBestY - this.y);
+                this.velocityX = inertia * this.velocityX +
+                    c1 * r1 * (this.pBestX - this.x) +
+                    c2 * r2 * (gBestX - this.x);
 
-                this.velocityX = Math.min(this.maxVelocity, Math.max(-this.maxVelocity, inertiaTermX + personalTermX + socialTermX));
-                this.velocityY = Math.min(this.maxVelocity, Math.max(-this.maxVelocity, inertiaTermY + personalTermY + socialTermY));
+                this.velocityY = inertia * this.velocityY +
+                    c1 * r1 * (this.pBestY - this.y) +
+                    c2 * r2 * (gBestY - this.y);
+
+                this.velocityX = Math.max(Math.min(this.velocityX, this.maxVelocity), -this.maxVelocity);
+                this.velocityY = Math.max(Math.min(this.velocityY, this.maxVelocity), -this.maxVelocity);
 
                 this.x += this.velocityX;
                 this.y += this.velocityY;
+            }
+
+            updatePosition() {
+                this.x += this.velocityX;
+                this.y += this.velocityY;
+            }
+
+            evaluateFitness(fitnessFunction) {
+                const fitness = fitnessFunction(this.x, this.y);
+                if (fitness < fitnessFunction(this.pBestX, this.pBestY)) {
+                    this.pBestX = this.x;
+                    this.pBestY = this.y;
+                }
             }
 
             draw(context) {
@@ -82,10 +98,10 @@
 
             updateGlobalBest() {
                 this.particles.forEach(particle => {
-                    const currentDistance = distance(particle.x, particle.y, particle.objectiveX, particle.objectiveY);
-                    const gBestDistance = distance(this.globalBest.x, this.globalBest.y, particle.objectiveX, particle.objectiveY);
+                    const currentFitness = fitnessFunction(particle.x, particle.y);
+                    const gBestFitness = fitnessFunction(this.globalBest.x, this.globalBest.y);
 
-                    if (currentDistance < gBestDistance) {
+                    if (currentFitness < gBestFitness) {
                         this.globalBest.x = particle.x;
                         this.globalBest.y = particle.y;
                     }
@@ -99,12 +115,14 @@
                 });
             }
 
-            updateParticles(inertia, c1, c2) {
+            updateParticles(inertia, c1, c2, fitnessFunction) {
                 this.particles.forEach(particle => {
-                    particle.update(this.globalBest.x, this.globalBest.y, inertia, c1, c2);
+                    particle.updateVelocity(inertia, c1, c2, this.globalBest.x, this.globalBest.y);
+                    particle.updatePosition();
+                    particle.evaluateFitness(fitnessFunction);
                 });
 
-                this.updateGlobalBest();
+                this.updateGlobalBest(fitnessFunction);
             }
 
             drawParticles(context) {
@@ -114,52 +132,36 @@
             }
         }
 
-        function distance(x1, y1, x2, y2) {
-            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
-        }
+        let mouseX = 250; // Default to center of canvas
+        let mouseY = 250; // Default to center of canvas
 
-        const swarm = new Swarm(50);
+        function fitnessFunction(x, y) {
+            return Math.sqrt((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY));
+        }
 
         const canvas = document.getElementById('demo-canvas');
         const context = canvas.getContext('2d');
-
-        const inertiaSlider = document.getElementById('inertia');
-        const c1Slider = document.getElementById('c1');
-        const c2Slider = document.getElementById('c2');
-
-        // This is left here in case you want the objective function to be set on click. Who am I to decide?
-        // canvas.addEventListener('click', (event) => {
-        //     const clickX = event.clientX - canvas.getBoundingClientRect().left;
-        //     const clickY = event.clientY - canvas.getBoundingClientRect().top;
-
-        //     console.log(`Objective: ${clickX},${clickY}`);
-
-        //     swarm.updateObjective(clickX, clickY);
-        // });
+        const swarm = new Swarm(30);
 
         canvas.addEventListener('mousemove', (event) => {
-            const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-            const mouseY = event.clientY - canvas.getBoundingClientRect().top;
-
-            swarm.updateObjective(mouseX, mouseY);
+            const rect = canvas.getBoundingClientRect();
+            mouseX = event.clientX - rect.left;
+            mouseY = event.clientY - rect.top;
         });
 
-        function animate() {
-            const inertia = parseFloat(inertiaSlider.value);
-            const c1 = parseFloat(c1Slider.value);
-            const c2 = parseFloat(c2Slider.value);
+        function psoStep() {
+            const inertia = parseFloat(document.getElementById('inertia').value);
+            const c1 = parseFloat(document.getElementById('c1').value);
+            const c2 = parseFloat(document.getElementById('c2').value);
 
             context.clearRect(0, 0, canvas.width, canvas.height);
-
-            swarm.updateParticles(inertia, c1, c2);
+            swarm.updateParticles(inertia, c1, c2, fitnessFunction);
             swarm.drawParticles(context);
 
-            setTimeout(() => {
-                requestAnimationFrame(animate);
-            }, 1000 / 60);
+            requestAnimationFrame(psoStep);
         }
 
-        animate();
+        psoStep();
     </script>
 </body>
 </html>
