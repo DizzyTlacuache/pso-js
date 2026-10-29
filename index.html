@@ -5,37 +5,379 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Particle Swarm Optimization</title>
     <style> 
+        :root {
+            --bg: #07090d;
+            --steel: #1a1f29;
+            --steel-light: #2b3342;
+            --ultron-red: #e0202b;
+            --ultron-red-glow: rgba(224, 32, 43, 0.55);
+            --vibranium: #3fb8ff;
+            --text: #e6e9ef;
+            --muted: #8d97a8;
+        }
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            margin: 20px;
-            font-family: sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Orbitron', 'Segoe UI', 'Trebuchet MS', sans-serif;
+            background: var(--bg);
+            color: var(--text);
         }
         h1 {
             margin-bottom: 10px;
         }
+        .deck {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(224, 32, 43, 0.14), transparent 55%),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 4px),
+                var(--bg);
+            overflow: hidden;
+        }
+        .slide {
+            display: none;
+            flex: 1;
+            min-height: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 8vw;
+            box-sizing: border-box;
+            overflow: auto;
+        }
+        .slide.active {
+            display: flex;
+        }
+        .slide.title-slide {
+            background:
+                radial-gradient(circle at 50% 42%, rgba(224, 32, 43, 0.35), transparent 45%),
+                radial-gradient(circle at 50% 100%, rgba(63, 184, 255, 0.12), transparent 50%);
+        }
+        .slide.title-slide h1 {
+            font-size: 4em;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            text-shadow: 0 0 24px var(--ultron-red-glow);
+        }
+        .slide.title-slide p {
+            font-size: 1.5em;
+            color: var(--muted);
+        }
+        .ultron-eye {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            background: radial-gradient(circle, #fff 0 6%, #ff6a6a 14%, var(--ultron-red) 38%, #5a0a10 62%, #1a1f29 64%);
+            box-shadow: 0 0 40px 8px var(--ultron-red-glow), inset 0 0 18px #000;
+            animation: eye-pulse 2.8s ease-in-out infinite;
+        }
+        @keyframes eye-pulse {
+            50% { box-shadow: 0 0 70px 18px var(--ultron-red-glow), inset 0 0 18px #000; }
+        }
+        .tagline {
+            font-style: italic;
+            color: var(--ultron-red) !important;
+            text-shadow: 0 0 10px var(--ultron-red-glow);
+        }
+        .slide h2 {
+            margin-top: 0;
+            font-size: 2.6em;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text);
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--ultron-red);
+            box-shadow: 0 10px 18px -14px var(--ultron-red);
+        }
+        .slide > p {
+            font-size: 1.5em;
+            color: var(--muted);
+        }
+        .slide ul.points {
+            text-align: left;
+            font-size: 1.7em;
+            line-height: 1.6;
+            max-width: 1100px;
+            list-style: none;
+            padding: 0;
+        }
+        .slide ul.points li {
+            position: relative;
+            padding-left: 1.4em;
+            margin-bottom: 0.3em;
+        }
+        .slide ul.points li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 0.55em;
+            height: 0.55em;
+            background: var(--ultron-red);
+            box-shadow: 0 0 8px var(--ultron-red-glow);
+            transform: rotate(45deg);
+        }
+        .slide ul.points strong {
+            color: var(--vibranium);
+        }
+        .slide .formula {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: var(--steel);
+            color: var(--vibranium);
+            border: 1px solid var(--steel-light);
+            border-left: 4px solid var(--ultron-red);
+            border-radius: 4px;
+            padding: 16px 20px;
+            font-size: 1.3em;
+            max-width: 1100px;
+        }
+        .slide a {
+            color: var(--vibranium);
+        }
+        .slide.sim-slide {
+            justify-content: flex-start;
+            padding: 15px;
+        }
+        .slide.sim-slide h2 {
+            margin: 0;
+            font-size: 1.6em;
+        }
+        .slide.sim-slide .crt {
+            margin-top: 10px;
+        }
+        .deck-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: var(--steel);
+            border-top: 2px solid var(--ultron-red);
+            box-shadow: 0 -4px 20px rgba(224, 32, 43, 0.25);
+            color: var(--muted);
+        }
+        button {
+            font-family: inherit;
+            font-size: 1em;
+            padding: 8px 18px;
+            cursor: pointer;
+            color: var(--text);
+            background: var(--steel-light);
+            border: 1px solid var(--ultron-red);
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        button:hover:not(:disabled) {
+            background: var(--ultron-red);
+            box-shadow: 0 0 14px var(--ultron-red-glow);
+        }
+        button:disabled {
+            cursor: default;
+            opacity: 0.35;
+            border-color: var(--steel-light);
+        }
         canvas {
+            display: block;
+        }
+        .crt {
+            position: relative;
             margin-top: 20px;
-            border: 1px solid #ccc;
+            overflow: hidden;
+            border: 2px solid var(--ultron-red);
+            box-shadow: 0 0 24px var(--ultron-red-glow);
+            animation: crt-flicker 0.15s infinite;
+        }
+        /* Static scanlines and a vignette over the whole screen. */
+        .crt::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background:
+                repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px),
+                radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.55) 100%);
+        }
+        /* A bright band sweeping down the screen, like a refresh line. */
+        .crt::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 90px;
+            z-index: 3;
+            pointer-events: none;
+            background: linear-gradient(180deg, transparent, rgba(63, 184, 255, 0.16) 70%, rgba(63, 184, 255, 0.35) 100%);
+            animation: crt-sweep 4s linear infinite;
+        }
+        @keyframes crt-sweep {
+            from { top: -90px; }
+            to { top: 100%; }
+        }
+        @keyframes crt-flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.97; }
+            100% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .crt, .crt::after {
+                animation: none;
+            }
         }
         .controls {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: var(--muted);
+        }
+        input[type="range"] {
+            accent-color: var(--ultron-red);
+        }
+        .layout {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .side-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            text-align: left;
+            font-size: 0.8em;
+            background: rgba(10, 14, 20, 0.78);
+            border: 1px solid var(--steel-light);
+            border-top: 3px solid var(--vibranium);
+            border-radius: 4px;
+            padding: 8px 12px;
+            min-width: 150px;
+        }
+        .side-panel h2 {
+            margin: 0;
+            font-size: 1.1em;
+            color: var(--vibranium);
+            border: 0;
+            box-shadow: none;
+            padding: 0;
+        }
+        .side-panel p {
+            margin: 4px 0 8px;
+        }
+        #status {
+            color: var(--ultron-red);
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        #status.converged {
+            color: var(--vibranium);
+        }
+        .side-panel ul {
+            padding-left: 16px;
+            margin: 4px 0 0;
+        }
+        #restart {
             margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Particle Swarm Optimization</h1>
-    <p>A code experiment by <a href="https://www.adamstirtan.com">Adam Stirtan</a>.</p>
-    <canvas id="demo-canvas" width="500" height="500"></canvas>
-    <div class="controls">
-        <label for="inertia">Inertia:</label>
-        <input type="range" id="inertia" min="0" max="1" step="0.01" value="0.5">
-        <label for="c1">Cognitive:</label>
-        <input type="range" id="c1" min="0" max="2" step="0.01" value="1.6">
-        <label for="c2">Social:</label>
-        <input type="range" id="c2" min="0" max="2" step="0.01" value="1.6">
+    <div class="deck">
+    <section class="slide title-slide active">
+        <div class="ultron-eye" aria-hidden="true"></div>
+        <h1>Particle Swarm Optimization</h1>
+        <p class="tagline">"I'm a swarm of code. There are no strings on me."</p>
+        <p>Age of Ultron workshop: command a satellite swarm and hunt for vibranium.</p>
+        <p>A code experiment by EIC.</p>
+    </section>
+    <section class="slide">
+        <h2>The mission</h2>
+        <ul class="points">
+            <li>Ultron needs <strong>vibranium</strong> to complete his plan. We must find it first.</li>
+            <li>Vibranium emits a very specific <strong>radiation signature</strong>.</li>
+            <li>The closer a satellite gets, the stronger the signal it reads.</li>
+            <li>We control a <strong>swarm of satellites</strong> and don't know where the deposit is.</li>
+            <li>The tool that coordinates the swarm: <strong>Particle Swarm Optimization</strong>.</li>
+        </ul>
+    </section>
+    <section class="slide">
+        <h2>What is PSO?</h2>
+        <ul class="points">
+            <li>A search method inspired by flocks of birds and schools of fish.</li>
+            <li>Many simple "particles" (our satellites) explore the search area at the same time.</li>
+            <li>Each satellite remembers the strongest signal <em>it</em> has read.</li>
+            <li>The swarm shares the strongest signal <em>anyone</em> has read.</li>
+            <li>Together, they converge on the vibranium.</li>
+        </ul>
+    </section>
+    <section class="slide">
+        <h2>How does a satellite move?</h2>
+        <p>Every step, a satellite's velocity combines three influences:</p>
+        <ul class="points">
+            <li><strong>Inertia:</strong> keep going in the current direction.</li>
+            <li><strong>Cognitive:</strong> go back toward my own best position.</li>
+            <li><strong>Social:</strong> go toward the swarm's best position.</li>
+        </ul>
+        <p class="formula">velocity = inertia &times; velocity + c1 &times; r1 &times; (myBest &minus; position) + c2 &times; r2 &times; (swarmBest &minus; position)</p>
+    </section>
+    <section class="slide">
+        <h2>What you will see</h2>
+        <ul class="points">
+            <li>The map hides a vibranium deposit. The satellites don't know where it is.</li>
+            <li>They only read the radiation signal at their own position: stronger means closer.</li>
+            <li>The status changes to <strong>Vibranium located</strong> when the swarm gathers on it.</li>
+            <li>Try it: low vs. high inertia, cognitive only, social only, few vs. many satellites.</li>
+            <li>Press <strong>Restart</strong> to bury the vibranium somewhere new.</li>
+        </ul>
+    </section>
+    <section class="slide sim-slide">
+        <h2>Vibranium scan</h2>
+    <div class="layout">
+        <div>
+            <div class="crt">
+                <canvas id="demo-canvas" width="500" height="500"></canvas>
+                <div class="side-panel">
+                    <h2>Status</h2>
+                    <p id="status">Scanning</p>
+                    <p>Time: <span id="timer">0.00s</span></p>
+                    <h2>Parameters</h2>
+                    <ul id="param-summary"></ul>
+                </div>
+            </div>
+            <div class="controls">
+                <label for="inertia">Inertia:</label>
+                <input type="range" id="inertia" min="0" max="1" step="0.01" value="0.5">
+                <label for="c1">Cognitive:</label>
+                <input type="range" id="c1" min="0" max="2" step="0.01" value="1.6">
+                <label for="c2">Social:</label>
+                <input type="range" id="c2" min="0" max="2" step="0.01" value="1.6">
+                <label for="particle-count">Satellites:</label>
+                <input type="range" id="particle-count" min="1" max="100" step="1" value="30">
+            </div>
+            <button type="button" id="restart">Restart</button>
+        </div>
+    </div>
+    </section>
+    <section class="slide title-slide">
+        <h1>Contact</h1>
+        <p>Thanks for helping us find the vibranium before Ultron does!</p>
+        <p>Name: [Your name]</p>
+        <p>Email: [your.email@example.com]</p>
+        <p>Source code: <a href="https://github.com/adamstirtan/pso-js">github.com/adamstirtan/pso-js</a></p>
+    </section>
+    <nav class="deck-nav" aria-label="Slide navigation">
+        <button type="button" id="prev-slide">&larr; Previous</button>
+        <span id="slide-counter"></span>
+        <button type="button" id="next-slide">Next &rarr;</button>
+    </nav>
     </div>
     <script>
         class Particle {
@@ -84,8 +426,12 @@
             draw(context) {
                 context.beginPath();
                 context.arc(this.x, this.y, 5, 0, 2 * Math.PI);
-                context.fillStyle = 'blue';
+                context.fillStyle = '#e0202b';
+                context.shadowColor = '#ff3b3b';
+                context.shadowBlur = 10;
                 context.fill();
+                context.shadowBlur = 0;
+                context.strokeStyle = '#ffd0d0';
                 context.stroke();
             }
         }
@@ -132,36 +478,189 @@
             }
         }
 
-        let mouseX = 250; // Default to center of canvas
-        let mouseY = 250; // Default to center of canvas
-
-        function fitnessFunction(x, y) {
-            return Math.sqrt((x - mouseX) * (x - mouseX) + (y - mouseY) * (y - mouseY));
-        }
-
         const canvas = document.getElementById('demo-canvas');
         const context = canvas.getContext('2d');
-        const swarm = new Swarm(30);
+        let targetX = Math.random() * canvas.width;
+        let targetY = Math.random() * canvas.height;
 
-        canvas.addEventListener('mousemove', (event) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = event.clientX - rect.left;
-            mouseY = event.clientY - rect.top;
-        });
+        // Stylized world map, rendered once to an offscreen canvas and reused as the search area's background.
+        const mapCanvas = document.createElement('canvas');
+        mapCanvas.width = canvas.width;
+        mapCanvas.height = canvas.height;
+        drawWorldMap(mapCanvas.getContext('2d'), mapCanvas.width, mapCanvas.height);
+
+        function drawWorldMap(mapContext, width, height) {
+            mapContext.fillStyle = '#0b1622';
+            mapContext.fillRect(0, 0, width, height);
+
+            // Faint tactical grid over the ocean.
+            mapContext.strokeStyle = 'rgba(63, 184, 255, 0.12)';
+            mapContext.lineWidth = 1;
+            for (let g = 0; g <= width; g += 25) {
+                mapContext.beginPath();
+                mapContext.moveTo(g, 0);
+                mapContext.lineTo(g, height);
+                mapContext.stroke();
+                mapContext.beginPath();
+                mapContext.moveTo(0, g);
+                mapContext.lineTo(width, g);
+                mapContext.stroke();
+            }
+
+            mapContext.fillStyle = '#2b3342';
+            mapContext.strokeStyle = '#3fb8ff';
+            // Rough silhouettes in equirectangular-style [0,1] coordinates: N. America, S. America, Europe, Africa, Asia, Australia.
+            const continents = [
+                [[0.06, 0.10], [0.11, 0.05], [0.16, 0.04], [0.20, 0.07], [0.24, 0.10], [0.26, 0.14], [0.24, 0.18], [0.25, 0.22], [0.22, 0.26], [0.23, 0.30], [0.20, 0.34], [0.21, 0.38], [0.17, 0.42], [0.18, 0.46], [0.13, 0.44], [0.09, 0.40], [0.06, 0.35], [0.04, 0.30], [0.05, 0.24], [0.03, 0.18], [0.04, 0.14]],
+                [[0.19, 0.44], [0.24, 0.43], [0.28, 0.45], [0.30, 0.49], [0.29, 0.54], [0.31, 0.58], [0.28, 0.62], [0.29, 0.67], [0.26, 0.71], [0.27, 0.76], [0.23, 0.80], [0.21, 0.85], [0.19, 0.80], [0.17, 0.75], [0.18, 0.69], [0.15, 0.64], [0.17, 0.58], [0.15, 0.52], [0.17, 0.47]],
+                [[0.44, 0.09], [0.48, 0.06], [0.52, 0.06], [0.56, 0.08], [0.59, 0.11], [0.57, 0.14], [0.58, 0.18], [0.54, 0.20], [0.50, 0.19], [0.47, 0.21], [0.44, 0.18], [0.42, 0.14]],
+                [[0.44, 0.21], [0.49, 0.19], [0.54, 0.20], [0.58, 0.23], [0.61, 0.27], [0.59, 0.32], [0.60, 0.37], [0.58, 0.42], [0.60, 0.47], [0.58, 0.52], [0.59, 0.57], [0.56, 0.62], [0.53, 0.67], [0.54, 0.72], [0.50, 0.76], [0.47, 0.71], [0.45, 0.65], [0.46, 0.59], [0.43, 0.53], [0.44, 0.47], [0.42, 0.41], [0.43, 0.35], [0.41, 0.29], [0.42, 0.25]],
+                [[0.55, 0.07], [0.62, 0.04], [0.70, 0.04], [0.78, 0.06], [0.85, 0.07], [0.91, 0.10], [0.96, 0.14], [0.94, 0.19], [0.96, 0.24], [0.92, 0.27], [0.94, 0.32], [0.88, 0.31], [0.90, 0.36], [0.85, 0.39], [0.86, 0.44], [0.80, 0.46], [0.75, 0.44], [0.70, 0.43], [0.67, 0.39], [0.63, 0.36], [0.65, 0.31], [0.61, 0.29], [0.58, 0.25], [0.60, 0.21], [0.56, 0.18], [0.57, 0.13], [0.54, 0.10]],
+                [[0.77, 0.63], [0.82, 0.61], [0.87, 0.62], [0.91, 0.64], [0.93, 0.68], [0.91, 0.72], [0.93, 0.76], [0.88, 0.78], [0.83, 0.77], [0.79, 0.79], [0.76, 0.75], [0.75, 0.70], [0.76, 0.66]]
+            ];
+
+            // Subdivides each edge, adding a jittered midpoint for a more detailed, organic coastline.
+            function addCoastlineDetail(points, jitterScale) {
+                const detailed = [];
+                for (let i = 0; i < points.length; i++) {
+                    const [x1, y1] = points[i];
+                    const [x2, y2] = points[(i + 1) % points.length];
+                    detailed.push([x1, y1]);
+
+                    const seed = Math.sin(i * 12.9898 + x1 * 78.233 + y1 * 37.719) * 43758.5453;
+                    const jitter = (seed - Math.floor(seed) - 0.5) * jitterScale;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    detailed.push([(x1 + x2) / 2 - dy * jitter, (y1 + y2) / 2 + dx * jitter]);
+                }
+                return detailed;
+            }
+
+            continents.forEach(points => {
+                const detailedPoints = addCoastlineDetail(addCoastlineDetail(points, 0.3), 0.15);
+                mapContext.beginPath();
+                detailedPoints.forEach(([px, py], i) => {
+                    const x = px * width;
+                    const y = py * height;
+                    if (i === 0) mapContext.moveTo(x, y);
+                    else mapContext.lineTo(x, y);
+                });
+                mapContext.closePath();
+                mapContext.fill();
+                mapContext.lineWidth = 1.5;
+                mapContext.stroke();
+            });
+
+            // Polar caps as strips along the top and bottom edges.
+            mapContext.fillStyle = '#3a4559';
+            mapContext.fillRect(0, 0, width, height * 0.03);
+            mapContext.fillRect(0, height * 0.95, width, height * 0.05);
+        }
+
+        function fitnessFunction(x, y) {
+            return Math.sqrt((x - targetX) * (x - targetX) + (y - targetY) * (y - targetY));
+        }
+
+        const particleCount = document.getElementById('particle-count');
+        const statusEl = document.getElementById('status');
+        const timerEl = document.getElementById('timer');
+        const paramSummaryEl = document.getElementById('param-summary');
+        const CONVERGENCE_THRESHOLD = 2;
+
+        let swarm = new Swarm(parseInt(particleCount.value, 10));
+        let running = true;
+        let startTime = performance.now();
+        let elapsedTime = 0;
+
+        function isConverged(swarm) {
+            const { x: gx, y: gy } = swarm.globalBest;
+            return swarm.particles.every(particle => {
+                const dx = particle.x - gx;
+                const dy = particle.y - gy;
+                return Math.sqrt(dx * dx + dy * dy) < CONVERGENCE_THRESHOLD;
+            });
+        }
+
+        function updateParamSummary(inertia, c1, c2) {
+            paramSummaryEl.innerHTML = `
+                <li>Inertia: ${inertia.toFixed(2)}</li>
+                <li>Cognitive: ${c1.toFixed(2)}</li>
+                <li>Social: ${c2.toFixed(2)}</li>
+                <li>Satellites: ${swarm.particles.length}</li>
+                <li>Vibranium: (${targetX.toFixed(0)}, ${targetY.toFixed(0)})</li>
+            `;
+        }
+
+        function restartSimulation() {
+            targetX = Math.random() * canvas.width;
+            targetY = Math.random() * canvas.height;
+            swarm = new Swarm(parseInt(particleCount.value, 10));
+            running = true;
+            startTime = performance.now();
+            elapsedTime = 0;
+            statusEl.textContent = 'Scanning';
+            statusEl.classList.remove('converged');
+        }
+
+        particleCount.addEventListener('input', restartSimulation);
+
+        document.getElementById('restart').addEventListener('click', restartSimulation);
 
         function psoStep() {
             const inertia = parseFloat(document.getElementById('inertia').value);
             const c1 = parseFloat(document.getElementById('c1').value);
             const c2 = parseFloat(document.getElementById('c2').value);
 
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            swarm.updateParticles(inertia, c1, c2, fitnessFunction);
+            if (running) {
+                swarm.updateParticles(inertia, c1, c2, fitnessFunction);
+                elapsedTime = (performance.now() - startTime) / 1000;
+
+                if (isConverged(swarm)) {
+                    running = false;
+                    statusEl.textContent = 'Vibranium located';
+                    statusEl.classList.add('converged');
+                }
+            }
+
+            timerEl.textContent = `${elapsedTime.toFixed(2)}s`;
+            updateParamSummary(inertia, c1, c2);
+
+            context.drawImage(mapCanvas, 0, 0);
             swarm.drawParticles(context);
 
             requestAnimationFrame(psoStep);
         }
 
         psoStep();
+
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const prevButton = document.getElementById('prev-slide');
+        const nextButton = document.getElementById('next-slide');
+        const slideCounter = document.getElementById('slide-counter');
+        let currentSlide = 0;
+
+        function showSlide(index) {
+            currentSlide = Math.max(0, Math.min(slides.length - 1, index));
+            slides.forEach((slide, i) => slide.classList.toggle('active', i === currentSlide));
+            prevButton.disabled = currentSlide === 0;
+            nextButton.disabled = currentSlide === slides.length - 1;
+            slideCounter.textContent = `${currentSlide + 1} / ${slides.length}`;
+
+            // Start a fresh run whenever the simulation slide is shown.
+            if (slides[currentSlide].classList.contains('sim-slide')) {
+                restartSimulation();
+            }
+        }
+
+        prevButton.addEventListener('click', () => showSlide(currentSlide - 1));
+        nextButton.addEventListener('click', () => showSlide(currentSlide + 1));
+        document.addEventListener('keydown', event => {
+            if (event.target.tagName === 'INPUT') return;
+            if (event.key === 'ArrowRight') showSlide(currentSlide + 1);
+            if (event.key === 'ArrowLeft') showSlide(currentSlide - 1);
+        });
+
+        showSlide(0);
     </script>
 </body>
 </html>
